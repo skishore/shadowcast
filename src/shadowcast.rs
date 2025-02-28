@@ -139,7 +139,7 @@ impl Vision {
         self.visibility.get(p + self.offset)
     }
 
-    pub fn clear(&mut self, pos: Point) {
+    pub fn clear(&mut self, pos: Point, visibility: i32) {
         // Sparse clear optimization. The dense clear has much better constant
         // factors so we only switch over when it's sufficiently sparse.
         if self.visibility.data.len() < 16 * self.points_seen.len() {
@@ -156,7 +156,7 @@ impl Vision {
         self.offset = center - pos;
         self.points_seen.clear();
 
-        self.visibility.set(center, INITIAL_VISIBILITY);
+        self.visibility.set(center, visibility);
         self.points_seen.push(pos);
 
         self.prev.depth = 1;
@@ -175,7 +175,7 @@ impl Vision {
 
         let limit = std::cmp::max(x.abs(), y.abs());
 
-        self.clear(args.eye);
+        self.clear(args.eye, args.initial_visibility);
         self.seed_ranges(args.dir, Some(target - args.eye));
         self.execute(args.eye, limit, &args.opacity_lookup);
 
@@ -183,7 +183,7 @@ impl Vision {
     }
 
     pub fn compute<F: Fn(Point) -> i32>(&mut self, args: &VisionArgs<F>) {
-        self.clear(args.eye);
+        self.clear(args.eye, args.initial_visibility);
         self.seed_ranges(args.dir, None);
         self.execute(args.eye, self.radius, &args.opacity_lookup);
     }
