@@ -5,6 +5,22 @@ use crate::base::{Matrix, Point};
 
 //////////////////////////////////////////////////////////////////////////////
 
+// Can be replaced by (unstable) div_floor / div_ceil
+
+fn div_floor(lhs: i32, rhs: i32) -> i32 {
+    // Algorithm from [Daan Leijen. _Division and Modulus for Computer Scientists_,
+    // December 2001](http://research.microsoft.com/pubs/151917/divmodnote-letter.pdf)
+    let (d, r) = (lhs / rhs, lhs % rhs);
+    if (r > 0 && rhs < 0) || (r < 0 && rhs > 0) { d - 1 } else { d }
+}
+
+fn div_ceil(lhs: i32, rhs: i32) -> i32 {
+    let (d, r) = (lhs / rhs, lhs % rhs);
+    if (r > 0 && rhs > 0) || (r < 0 && rhs < 0) { d + 1 } else { d }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+
 // Constants
 
 // Partial transparency parameters. Selected so that we see a roughly-circular
@@ -273,8 +289,8 @@ impl Vision {
             for range in &self.prev.items {
                 let mut prev_visibility = -1;
                 let SlopeRange { mut min, max, transform, visibility } = *range;
-                let start = (2 * min.num * depth + min.den).div_floor(2 * min.den);
-                let limit = (2 * max.num * depth - max.den).div_ceil(2 * max.den);
+                let start = div_floor(2 * min.num * depth + min.den, 2 * min.den);
+                let limit = div_ceil(2 * max.num * depth - max.den, 2 * max.den);
 
                 for width in start..=limit {
                     let (x, y) = (depth, width);
