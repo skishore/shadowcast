@@ -274,13 +274,14 @@ impl Vision {
         let r2 = radius * radius + radius;
 
         let push = |next: &mut SlopeRanges, s: SlopeRange| {
-            if let Some(x) = next.items.last_mut() &&
-                x.max == s.min && x.visibility == s.visibility &&
-                x.transform as *const Transform == s.transform as *const Transform {
+            if let Some(x) = next.items.last_mut() {
+                if x.max == s.min && x.visibility == s.visibility &&
+                   x.transform as *const Transform == s.transform as *const Transform {
                     x.max = s.max;
-            } else {
-                next.items.push(s);
+                    return;
+                }
             }
+            next.items.push(s);
         };
 
         while self.prev.depth <= limit && !self.prev.items.is_empty() {
@@ -346,8 +347,6 @@ mod tests {
 
     use rand::{Rng, SeedableRng};
     use rand::rngs::StdRng;
-
-    extern crate test;
 
     const VISIBILITY_LOSS: i32 = VISIBILITY_LOSSES[2];
 
@@ -802,51 +801,6 @@ mod tests {
             "..........%%%",
             "...X.......%%",
         ]);
-    }
-
-    #[bench]
-    fn bench_fov_360_degree_vision(b: &mut test::Bencher) {
-        run_vision_benchmark(b, false, false);
-    }
-
-    #[bench]
-    fn bench_fov_directional_vision(b: &mut test::Bencher) {
-        run_vision_benchmark(b, true, false);
-    }
-
-    #[bench]
-    fn bench_fov_360_degree_point_lookups(b: &mut test::Bencher) {
-        run_vision_benchmark(b, false, true);
-    }
-
-    #[bench]
-    fn bench_fov_directional_point_lookups(b: &mut test::Bencher) {
-        run_vision_benchmark(b, true, true);
-    }
-
-
-    fn run_vision_benchmark(b: &mut test::Bencher, directional: bool, point_lookups: bool) {
-        let (eye, map) = generate_fov_input();
-        let initial_visibility = INITIAL_VISIBILITY;
-        let opacity_lookup = |p: Point| match map.get(p) {
-            '#' => INITIAL_VISIBILITY,
-            ',' => VISIBILITY_LOSS,
-            _ => 0,
-        };
-        let dir = if directional { Point(1, 1) } else { Point(0, 0) };
-        let args = VisionArgs { eye, dir, opacity_lookup, initial_visibility };
-
-        let mut vision = Vision::new(eye.0);
-        if point_lookups {
-            let mut rng = StdRng::seed_from_u64(17);
-            b.iter(|| {
-                let Point(x, y) = map.size;
-                let target = Point(rng.random_range(0..x), rng.random_range(0..y));
-                vision.can_see(&args, target);
-            });
-        } else {
-            b.iter(|| { vision.compute(&args) });
-        }
     }
 
     fn generate_fov_input() -> (Point, Matrix<char>) {
